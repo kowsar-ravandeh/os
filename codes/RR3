@@ -1,0 +1,54 @@
+#include <iostream>
+#include <queue>
+
+using namespace std;
+
+struct Process {
+    string name;
+    int burstTime;
+};
+
+void runRoundRobinScheduler(queue<Process>& processes, int timeQuantum) {
+    while (!processes.empty()) {
+        Process currentProcess = processes.front();
+        processes.pop();
+
+        // زمان پردازش فعلی برای این پردازش
+        int remainingBurstTime = currentProcess.burstTime;
+
+        // اجرای پردازش با در نظر گرفتن شانس زمانی
+        while (remainingBurstTime > 0) {
+            if (remainingBurstTime <= timeQuantum) {
+                // پردازش تمام شده است
+                cout << "Running process " << currentProcess.name << " for " << remainingBurstTime << " units." << endl;
+                remainingBurstTime = 0;
+            } else {
+                // پردازش هنوز تمام نشده است، اما زمان کوتاهی از زمان کوانتوم باقی مانده است
+                cout << "Running process " << currentProcess.name << " for " << timeQuantum << " units." << endl;
+                remainingBurstTime -= timeQuantum;
+            }
+        }
+
+        // اگر پردازش هنوز تمام نشده بود، در صف انتظار قرار می‌گیرد
+        if (remainingBurstTime > 0) {
+            processes.push({currentProcess.name, remainingBurstTime});
+        }
+    }
+}
+
+int main() {
+    // ایجاد صف پردازش‌ها
+    queue<Process> processes;
+    processes.push({"P1", 10});
+    processes.push({"P2", 5});
+    processes.push({"P3", 8});
+    processes.push({"P4", 2});
+
+    // زمان کوانتوم
+    int timeQuantum = 3;
+
+    // اجرای الگوریتم زمانبندی RR
+    runRoundRobinScheduler(processes, timeQuantum);
+
+    return 0;
+}
