@@ -1,0 +1,81 @@
+#include <iostream>
+#include <cmath>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <semaphore.h>
+using namespace std;
+
+// A function that returns the value of 3sin(x*x) for a given x
+double f(double x) {
+    return 3 * sin(x * x);
+}
+
+// A function that calculates the integral of 3sin(x*x) over the interval [a, b] using the trapezoidal rule
+double trapezoidal(double a, double b, int n) {
+    double h = (b - a) / n; // step size
+    double sum = 0.5 * (f(a) + f(b)); // sum of the first and last terms
+    for (int i = 1; i < n; i++) { // sum of the middle terms
+        sum += f(a + i * h);
+    }
+    return h * sum; // return the integral value
+}
+
+// A function that uses fork to parallelize the trapezoidal rule
+double parallel_trapezoidal(double a, double b, int n, int p) {
+    double h = (b - a) / n; // step size
+    double result = 0; // final result
+    int status; // status of the child processes
+    pid_t pid; // process id
+
+    // Create an array of semaphores
+    sem_t semaphores[p];
+    for (int i = 0; i < p; i++) {
+        sem_init(&semaphores[i], 0, 0); // Initialize each semaphore with 0
+    }
+
+    for (int i = 0; i < p; i++) { // create p child processes
+        pid = fork(); // fork a new process
+        if (pid == 0) { // child process
+            double sub_a = a + i * (n / p) * h; // lower bound of the subinterval
+            double sub_b = sub_a + (n / p) * h; // upper bound of the subinterval
+            double sub_result = trapezoidal(sub_a, sub_b, n / p); // calculate the integral in the subinterval
+            cout << "Child process " << i << " calculated " << sub_result << endl; // print the result
+
+            // Signal the semaphore to indicate completion
+            sem_post(&semaphores[i]);
+
+            exit(sub_result); // exit with the result as the status
+        }
+    }
+
+    // Wait for all child processes to complete
+    for (int i = 0; i < p; i++) {
+        // Wait for the semaphore
+        sem_wait(&semaphores[i]);
+
+        // Get the status of the child process and add it to the final result
+        wait(&status);
+        result += WEXITSTATUS(status);
+    }
+
+    // Destroy the semaphores
+    for (int i = 0; i < p; i++) {
+        sem_destroy(&semaphores[i]);
+    }
+
+    return result; // return the final result
+}
+
+int main() {
+    double a, b; // interval endpoints
+    int n, p; // number of subintervals and processes
+    cout << "Enter the lower and upper bounds of the interval: ";
+    cin >> a >> b;
+    cout << "Enter the number of subintervals: ";
+    cin >> n;
+    cout << "Enter the number of processes: ";
+    cin >> p;
+    double result = parallel_trapezoidal(a, b, n, p); // calculate the integral using parallel trapezoidal rule
+    cout << "The integral of 3sin(x*x) from " << a << " to " << b << " is " << result << endl; // print the result
+    return 0;
+}
