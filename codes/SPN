@@ -1,0 +1,39 @@
+#include <iostream>
+#include <queue>
+
+using namespace std;
+
+struct Process {
+    string name;
+    int arrivalTime;
+    int burstTime;
+};
+
+void runSPNScheduler(queue<Process>& processes) {
+    while (!processes.empty()) {
+        Process currentProcess = processes.front();
+        processes.pop();
+
+        cout << "Running process " << currentProcess.name << endl;
+
+        // اجرای پردازش
+        for (int i = 0; i < currentProcess.burstTime; ++i) {
+            cout << ".";
+        }
+        cout << endl;
+    }
+}
+
+int main() {
+    // ایجاد صف پردازش‌ها
+    queue<Process> processes;
+    processes.push({"P1", 0, 10});
+    processes.push({"P2", 2, 5});
+    processes.push({"P3", 1, 8});
+    processes.push({"P4", 3, 2});
+
+    // اجرای الگوریتم زمانبندی SPN
+    runSPNScheduler(processes);
+
+    return 0;
+}
