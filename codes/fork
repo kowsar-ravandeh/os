@@ -1,0 +1,61 @@
+#include <iostream>
+#include <cmath>
+#include <unistd.h>
+#include <sys/wait.h>
+using namespace std;
+
+// A function that returns the value of 3sin10x for a given x
+double f(double x) {
+    return 3 * sin(x * x);
+}
+
+// A function that calculates the integral of 3sin10x in a given interval using the trapezoidal rule
+double trapezoidal(double a, double b, int n) {
+    double h = (b - a) / n; // step size
+    double sum = 0.5 * (f(a) + f(b)); // sum of the first and last terms
+    for (int i = 1; i < n; i++) { // sum of the middle terms
+        sum += f(a + i * h);
+    }
+    return h * sum; // return the integral value
+}
+
+// A function that uses fork to parallelize the trapezoidal rule
+double parallel_trapezoidal(double a, double b, int n, int p) {
+    double h = (b - a) / n; // step size
+    double result = 0; // final result
+    int status; // status of the child processes
+    pid_t pid; // process id
+    for (int i = 0; i < p; i++) { // create p child processes
+        pid = fork(); // fork a new process
+        if (pid == 0) { // child process
+            double sub_a = a + i * (n / p) * h; // lower bound of the subinterval
+            double sub_b = sub_a + (n / p) * h; // upper bound of the subinterval
+            double sub_result = trapezoidal(sub_a, sub_b, n / p); // calculate the integral in the subinterval
+            cout << "Child process " << i << " calculated " << sub_result << endl; // print the result
+            exit(sub_result); // exit with the result as the status
+        }
+        else if (pid > 0) { // parent process
+           wait(&status); // wait for a child process to finish
+           result += WEXITSTATUS(status); // add the result of the child process to the final result
+    }
+    }
+    // for (int i = 0; i < p; i++) { // parent process
+    //     wait(&status); // wait for a child process to finish
+    //     result += WEXITSTATUS(status); // add the result of the child process to the final result
+    // }
+    return result; // return the final result
+}
+
+int main() {
+    double a, b; // interval endpoints
+    int n, p; // number of subintervals and processes
+    cout << "Enter the lower and upper bounds of the interval: ";
+    cin >> a >> b;
+    cout << "Enter the number of subintervals: ";
+    cin >> n;
+    cout << "Enter the number of processes: ";
+    cin >> p;
+    double result = parallel_trapezoidal(a, b, n, p); // calculate the integral using parallel trapezoidal rule
+    cout << "The integral of 3sin10x from " << a << " to " << b << " is " << result << endl; // print the result
+    return 0;
+}
